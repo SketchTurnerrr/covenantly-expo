@@ -1,130 +1,211 @@
-import "react-native-url-polyfill/auto";
-import React from "react";
+import 'react-native-url-polyfill/auto';
+import React from 'react';
 
-import { EmailOtpType, createClient } from "@supabase/supabase-js";
-import * as SecureStore from "expo-secure-store";
-import { useSegments, useRouter } from "expo-router";
+import { EmailOtpType, createClient } from '@supabase/supabase-js';
+import * as SecureStore from 'expo-secure-store';
+import * as aesjs from 'aes-js';
+import 'react-native-get-random-values';
+import { useSegments, useRouter } from 'expo-router';
 
-import { SupabaseContext } from "./SupabaseContext";
-import { supabaseUrl, supabaseKey } from "./supabase";
+import { SupabaseContext } from './SupabaseContext';
+import { supabaseUrl, supabaseKey } from './supabase';
 
-// We are using Expo Secure Store to persist session info
-const ExpoSecureStoreAdapter = {
-	getItem: (key: string) => {
-		return SecureStore.getItemAsync(key);
-	},
-	setItem: (key: string, value: string) => {
-		SecureStore.setItemAsync(key, value);
-	},
-	removeItem: (key: string) => {
-		SecureStore.deleteItemAsync(key);
-	},
-};
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 // This hook will protect the route access based on user authentication.
 function useProtectedRoute(isLoggedIn: boolean) {
-	const segments = useSegments();
-	const router = useRouter();
+  const segments = useSegments();
+  const router = useRouter();
 
-	React.useEffect(() => {
-		const inAuthGroup = segments[0] === "(auth)";
+  React.useEffect(() => {
+    const inAuthGroup = segments[0] === '(auth)';
 
-		if (
-			// If the user is not logged in and the initial segment is not anything in the auth group.
-			!isLoggedIn &&
-			!inAuthGroup
-		) {
-			// Redirect to the sign-up page.
-			router.replace("/sign-up");
-		} else if (isLoggedIn && inAuthGroup) {
-			// Redirect away from the sign-up page.
-			router.replace("/");
-		}
-	}, [isLoggedIn, segments]);
+    if (
+      // If the user is not logged in and the initial segment is not anything in the auth group.
+      !isLoggedIn &&
+      !inAuthGroup
+    ) {
+      // Redirect to the sign-up page.
+      router.replace('/sign-up');
+    } else if (isLoggedIn && inAuthGroup) {
+      // Redirect away from the sign-up page.
+      router.replace('/');
+    }
+  }, [isLoggedIn, segments]);
 }
 
 type SupabaseProviderProps = {
-	children: JSX.Element | JSX.Element[];
+  children: JSX.Element | JSX.Element[];
 };
 
 export const SupabaseProvider = (props: SupabaseProviderProps) => {
-	const [isLoggedIn, setLoggedIn] = React.useState<boolean>(false);
+  const [isLoggedIn, setLoggedIn] = React.useState<boolean>(false);
+  class LargeSecureStore {
+    private async _encrypt(key: string, value: string) {
+      const encryptionKey = crypto.getRandomValues(new Uint8Array(256 / 8));
 
-	const supabase = createClient(supabaseUrl, supabaseKey, {
-		auth: {
-			storage: ExpoSecureStoreAdapter,
-			autoRefreshToken: true,
-			persistSession: true,
-			detectSessionInUrl: false,
-		},
-	});
+      const cipher = new aesjs.ModeOfOperation.ctr(
+        encryptionKey,
+        new aesjs.Counter(1)
+      );
+      const encryptedBytes = cipher.encrypt(aesjs.utils.utf8.toBytes(value));
 
-	const signUp = async (email: string, password: string) => {
-		const { error } = await supabase.auth.signUp({
-			email,
-			password,
-		});
-		if (error) throw error;
-	};
+      await SecureStore.setItemAsync(
+        key,
+        aesjs.utils.hex.fromBytes(encryptionKey)
+      );
 
-	const verifyOtp = async (
-		email: string,
-		token: string,
-		type: EmailOtpType,
-	) => {
-		const { error } = await supabase.auth.verifyOtp({
-			email,
-			token,
-			type,
-		});
-		if (error) throw error;
-		setLoggedIn(true);
-	};
+      return aesjs.utils.hex.fromBytes(encryptedBytes);
+    }
 
-	const signInWithPassword = async (email: string, password: string) => {
-		const { error } = await supabase.auth.signInWithPassword({
-			email,
-			password,
-		});
-		if (error) throw error;
-		setLoggedIn(true);
-	};
+    private async _decrypt(key: string, value: string) {
+      const encryptionKeyHex = await SecureStore.getItemAsync(key);
+      if (!encryptionKeyHex) {
+        return encryptionKeyHex;
+      }
 
-	const resetPasswordForEmail = async (email: string) => {
-		const { error } = await supabase.auth.resetPasswordForEmail(email);
-		if (error) throw error;
-	};
+      const cipher = new aesjs.ModeOfOperation.ctr(
+        aesjs.utils.hex.toBytes(encryptionKeyHex),
+        new aesjs.Counter(1)
+      );
+      const decryptedBytes = cipher.decrypt(aesjs.utils.hex.toBytes(value));
 
-	const signOut = async () => {
-		const { error } = await supabase.auth.signOut();
-		if (error) throw error;
-		setLoggedIn(false);
-	};
+      return aesjs.utils.utf8.fromBytes(decryptedBytes);
+    }
 
-	const getSession = async () => {
-		const result = await supabase.auth.getSession();
-		setLoggedIn(result.data.session !== null);
-	};
+    async getItem(key: string) {
+      const encrypted = await AsyncStorage.getItem(key);
+      if (!encrypted) {
+        return encrypted;
+      }
 
-	React.useEffect(() => {
-		getSession();
-		console.log("isLoggedIn", isLoggedIn);
-	}, [isLoggedIn]);
+      return await this._decrypt(key, encrypted);
+    }
 
-	useProtectedRoute(isLoggedIn);
+    async removeItem(key: string) {
+      await AsyncStorage.removeItem(key);
+      await SecureStore.deleteItemAsync(key);
+    }
 
-	return (
-		<SupabaseContext.Provider
-			value={{
-				isLoggedIn,
-				signInWithPassword,
-				verifyOtp,
-				signUp,
-				resetPasswordForEmail,
-				signOut,
-			}}
-		>
-			{props.children}
-		</SupabaseContext.Provider>
-	);
+    async setItem(key: string, value: string) {
+      const encrypted = await this._encrypt(key, value);
+
+      await AsyncStorage.setItem(key, encrypted);
+    }
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      storage: new LargeSecureStore(),
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  });
+
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) throw error;
+  };
+
+  const verifyOtp = async (
+    email: string,
+    token: string,
+    type: EmailOtpType
+  ) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type,
+    });
+    if (error) throw error;
+    setLoggedIn(true);
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      if (userInfo.idToken) {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: userInfo.idToken,
+        });
+        console.log('error :', error);
+      } else {
+        throw new Error('no idToken');
+      }
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled the login flow
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // operation (e.g. sign in) is in progress already
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        // play services not available or outdated
+      } else {
+        // some other error happened
+      }
+    } finally {
+      setLoggedIn(true);
+    }
+  };
+
+  const signInWithPassword = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    setLoggedIn(true);
+  };
+
+  const resetPasswordForEmail = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw error;
+  };
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    setLoggedIn(false);
+  };
+
+  const getSession = async () => {
+    const result = await supabase.auth.getSession();
+    setLoggedIn(result.data.session !== null);
+  };
+
+  React.useEffect(() => {
+    getSession();
+    console.log('isLoggedIn', isLoggedIn);
+  }, [isLoggedIn]);
+
+  useProtectedRoute(isLoggedIn);
+
+  return (
+    <SupabaseContext.Provider
+      value={{
+        isLoggedIn,
+        signInWithPassword,
+        signInWithGoogle,
+        verifyOtp,
+        signUp,
+        resetPasswordForEmail,
+        signOut,
+      }}
+    >
+      {props.children}
+    </SupabaseContext.Provider>
+  );
 };

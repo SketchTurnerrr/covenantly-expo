@@ -1,2 +1,3 @@
-export const supabaseUrl = "<Your Supabase URL>";
-export const supabaseKey = "<Your Supabase Key>";
+export const supabaseUrl = 'https://beasnruicmydtdgqozev.supabase.co';
+export const supabaseKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlYXNucnVpY215ZHRkZ3FvemV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTUzMjU3OTAsImV4cCI6MjAxMDkwMTc5MH0.jvOaOFCQP0DV_qahv2lkoDzz4z5TTz4bvgkYSpRfv_g';
