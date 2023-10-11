@@ -8,7 +8,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import tw from '@/lib/tailwind';
-import { useSupabase } from '@/context/useSupabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
@@ -41,7 +40,8 @@ const FormSchema = z
   });
 
 export default function SignUp() {
-  const { signUp } = useSupabase();
+  // const { signUp } = useSupabase();
+
   const router = useRouter();
   const alertRef = React.useRef<any>(null);
 
@@ -55,19 +55,19 @@ export default function SignUp() {
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    try {
-      await signUp(data.email, data.password);
-      router.push({
-        pathname: '/verify',
-        params: { email: data.email },
-      });
-    } catch (error: Error | any) {
-      alertRef.current?.showAlert({
-        variant: 'destructive',
-        title: 'Error',
-        message: error.message,
-      });
-    }
+    // try {
+    //   await signUp(data.email, data.password);
+    //   router.push({
+    //     pathname: '/verify',
+    //     params: { email: data.email },
+    //   });
+    // } catch (error: Error | any) {
+    //   alertRef.current?.showAlert({
+    //     variant: 'destructive',
+    //     title: 'Error',
+    //     message: error.message,
+    //   });
+    // }
   }
 
   return (

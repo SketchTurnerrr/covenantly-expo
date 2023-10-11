@@ -47,10 +47,52 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name='two'
+        name='likes'
         options={{
-          title: 'Tab Two',
+          title: 'Likes',
           tabBarIcon: ({ color }) => <TabBarIcon name='code' color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name='matches'
+        options={{
+          title: 'Знайомства',
+          tabBarIcon: ({ color }) => <TabBarIcon name='code' color={color} />,
+          headerRight: () => (
+            <Link href='/modal' asChild>
+              <Pressable>
+                {({ pressed }) => (
+                  <FontAwesome
+                    name='info-circle'
+                    size={25}
+                    color={'#e3e3e3'}
+                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                  />
+                )}
+              </Pressable>
+            </Link>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name='account'
+        options={{
+          title: 'Профіль',
+          tabBarIcon: ({ color }) => <TabBarIcon name='code' color={color} />,
+          headerRight: () => (
+            <Link href='/modal' asChild>
+              <Pressable>
+                {({ pressed }) => (
+                  <FontAwesome
+                    name='info-circle'
+                    size={25}
+                    color={'#e3e3e3'}
+                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                  />
+                )}
+              </Pressable>
+            </Link>
+          ),
         }}
       />
     </Tabs>

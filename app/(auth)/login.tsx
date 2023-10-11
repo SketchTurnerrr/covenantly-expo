@@ -8,11 +8,15 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import tw from '@/lib/tailwind';
-import { useSupabase } from '@/context/useSupabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { Error } from '@/types/error';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import { supabase } from '@/lib/supabase';
 
 const FormSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -22,10 +26,44 @@ const FormSchema = z.object({
     .max(64, 'Please enter fewer than 64 characters.'),
 });
 
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
+
 export default function Login() {
-  const { signInWithPassword, signInWithGoogle } = useSupabase();
+  const [loading, setLoading] = React.useState(false);
+
   const router = useRouter();
   const alertRef = React.useRef<any>(null);
+
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      if (userInfo.idToken) {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: userInfo.idToken,
+        });
+        console.log('error :', error);
+      } else {
+        throw new Error('no idToken');
+      }
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled the login flow
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // operation (e.g. sign in) is in progress already
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        // play services not available or outdated
+      } else {
+        // some other error happened
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const {
     control,
@@ -37,15 +75,15 @@ export default function Login() {
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    try {
-      await signInWithPassword(data.email, data.password);
-    } catch (error: Error | any) {
-      alertRef.current?.showAlert({
-        variant: 'destructive',
-        title: 'Error',
-        message: error.message,
-      });
-    }
+    // try {
+    //   await signInWithPassword(data.email, data.password);
+    // } catch (error: Error | any) {
+    //   alertRef.current?.showAlert({
+    //     variant: 'destructive',
+    //     title: 'Error',
+    //     message: error.message,
+    //   });
+    // }
   }
 
   return (
