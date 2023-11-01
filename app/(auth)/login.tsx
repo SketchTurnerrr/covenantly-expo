@@ -16,7 +16,7 @@ import {
   GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/supabase';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -55,10 +55,6 @@ export default function Login() {
     });
     if (error) throw error;
 
-    console.log(
-      'session create sess from url ----------------------------------------------------:',
-      data.session
-    );
     return data.session;
   };
 
@@ -80,7 +76,7 @@ export default function Login() {
     console.log('res :', res);
     if (res.type === 'success') {
       const { url } = res;
-      console.log('success  url  --------------------:', url);
+      // console.log('success  url  --------------------:', url);
       await createSessionFromUrl(url);
     }
   };
@@ -88,37 +84,38 @@ export default function Login() {
   const router = useRouter();
   const alertRef = React.useRef<any>(null);
 
-  const signInWithGoogle = async () => {
-    setLoading(true);
-    try {
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      console.log('userInfo :', userInfo);
-      if (userInfo.idToken) {
-        console.log('fired :');
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: userInfo.idToken,
-        });
-        console.log('data :', data);
-        console.log('error :', error);
-      } else {
-        throw new Error('no idToken');
-      }
-    } catch (error: any) {
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // user cancelled the login flow
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        // operation (e.g. sign in) is in progress already
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        // play services not available or outdated
-      } else {
-        // some other error happened
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const signInWithGoogle = async () => {
+  //   setLoading(true);
+  //   try {
+  //     await GoogleSignin.hasPlayServices();
+  //     const userInfo = await GoogleSignin.signIn();
+  //     console.log('userInfo :', userInfo);
+  //     if (userInfo.idToken) {
+  //       console.log('fired :');
+  //       const { data, error } = await supabase.auth.signInWithIdToken({
+  //         provider: 'google',
+  //         token: userInfo.idToken,
+  //       });
+  //       console.log('data :', data);
+  //       console.log('error :', error);
+  //     } else {
+  //       throw new Error('no idToken');
+  //     }
+  //   } catch (error: any) {
+  //     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+  //       // user cancelled the login flow
+  //     } else if (error.code === statusCodes.IN_PROGRESS) {
+  //       // operation (e.g. sign in) is in progress already
+  //     } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+  //       // play services not available or outdated
+  //     } else {
+  //       // some other error happened
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const sendMagicLink = async () => {
     const { error } = await supabase.auth.signInWithOtp({
       email: 'narekdevua@gmail.com',
@@ -203,65 +200,17 @@ export default function Login() {
         <View style={tw`py-1`}>
           <Text style={tw`text-center muted`}>або</Text>
         </View>
-        <Button
+        {/* <Button
           label='Продовжити з Google'
           onPress={signInWithGoogle}
           isLoading={isSubmitting}
-        />
+        /> */}
 
         <Button
-          label='performOAuth'
+          label='Продовжити з Google'
           onPress={performOAuth}
           isLoading={isSubmitting}
         />
-        {/* <Button
-          onPress={async () => {
-            const res = await supabase.auth.signInWithOAuth({
-              provider: 'google',
-              options: {
-                redirectTo:
-                  'https://beasnruicmydtdgqozev.supabase.co/auth/v1/callback',
-                queryParams: {
-                  prompt: 'consent',
-                },
-              },
-            });
-
-            const googleOAuthUrl = res.data.url;
-            console.log('googleOAuthUrl :', googleOAuthUrl);
-
-            if (!googleOAuthUrl) return Alert.alert('no oauth url found!');
-
-            const result = await WebBrowser.openAuthSessionAsync(
-              googleOAuthUrl,
-              'https://beasnruicmydtdgqozev.supabase.co/auth/v1/callback?',
-              {
-                showInRecents: true,
-              }
-            ).catch((err) => {
-              console.log(err);
-            });
-
-            if (result && result.type === 'success') {
-              const params = extractParamsFromUrl(result.url);
-
-              if (params.code) {
-                const user = await supabase.auth.exchangeCodeForSession(
-                  params.code
-                );
-                console.log(user);
-                return;
-              } else {
-                // sign in/up failed
-
-                console.log('failed :');
-              }
-            } else {
-              console.log('handle failed error');
-            }
-          }}
-          label='Sign in with google'
-        /> */}
 
         <Text
           style={tw`text-center muted`}

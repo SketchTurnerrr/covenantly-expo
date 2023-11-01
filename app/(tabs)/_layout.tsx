@@ -2,6 +2,7 @@ import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
+import { CompassIcon, MessageSquare, ThumbsUp } from 'lucide-react-native';
 
 import { useColorScheme } from 'react-native';
 import tw from '@/lib/tailwind';
@@ -29,16 +30,17 @@ export default function TabLayout() {
         name='index'
         options={{
           title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name='code' color={color} />,
+          tabBarIcon: ({ color }) => (
+            <CompassIcon size={24} name='code' color={color} />
+          ),
           headerRight: () => (
             <Link href='/modal' asChild>
               <Pressable>
                 {({ pressed }) => (
-                  <FontAwesome
-                    name='info-circle'
-                    size={25}
+                  <CompassIcon
+                    size={24}
                     color={'#e3e3e3'}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+                    // style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                   />
                 )}
               </Pressable>
@@ -50,14 +52,14 @@ export default function TabLayout() {
         name='likes'
         options={{
           title: 'Likes',
-          tabBarIcon: ({ color }) => <TabBarIcon name='code' color={color} />,
+          tabBarIcon: ({ color }) => <ThumbsUp size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name='matches'
         options={{
           title: 'Знайомства',
-          tabBarIcon: ({ color }) => <TabBarIcon name='code' color={color} />,
+          tabBarIcon: ({ color }) => <MessageSquare size={24} color={color} />,
           headerRight: () => (
             <Link href='/modal' asChild>
               <Pressable>

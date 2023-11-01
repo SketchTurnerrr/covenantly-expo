@@ -18,7 +18,8 @@ import {
 
 import { useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/supabase';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -60,7 +61,6 @@ function RootLayout() {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       console.log('error :', error);
       if (session) {
-        console.log('session :', session);
         router.replace('/(tabs)/');
       } else {
         console.log('no user');
@@ -71,27 +71,36 @@ function RootLayout() {
       if (session) {
         router.replace('/(tabs)/');
       } else {
-        console.log('session :', session);
         console.log('no user');
         router.replace('/(auth)/login');
       }
     });
   }, []);
 
+  const queryClient = new QueryClient();
+
+  if (__DEV__) {
+    import('react-query-native-devtools').then(({ addPlugin }) => {
+      addPlugin({ queryClient });
+    });
+  }
+
   return (
     <GestureHandlerRootView style={tw`flex-1`}>
       <SafeAreaProvider>
-        <ThemeProvider
-          value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
-        >
-          <Stack>
-            <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-            <Stack.Screen
-              name='modal'
-              options={{ presentation: 'transparentModal' }}
-            />
-          </Stack>
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider
+            value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+          >
+            <Stack>
+              <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
+              <Stack.Screen
+                name='modal'
+                options={{ presentation: 'transparentModal' }}
+              />
+            </Stack>
+          </ThemeProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

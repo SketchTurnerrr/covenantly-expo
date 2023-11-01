@@ -1,19 +1,28 @@
+import { Profile } from '@/components/ui/Profile';
+import { SkipProfileBtn } from '@/components/ui/SkipProfileBtn';
+import { useGetProfileQuery } from '@/hooks/useGetProfileQuery';
 import { StyleSheet, View, Text } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 
 export default function DiscoverScreen() {
+  const { data: profile } = useGetProfileQuery('female');
+  // console.log('data :', data);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Дісковер</Text>
-      <View style={styles.separator} />
-    </View>
+    <ScrollView style={styles.container}>
+      <SkipProfileBtn />
+      <Profile />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    // padding: 16,
+    // alignItems: 'center',
+    // justifyContent: 'center',
+    backgroundColor: 'white',
   },
   title: {
     fontSize: 20,
