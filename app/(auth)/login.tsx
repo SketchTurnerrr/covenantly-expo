@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,13 +10,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import tw from '@/lib/tailwind';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Alert } from '@/components/ui/Alert';
+import { Alert as CustomAlert } from '@/components/ui/Alert';
 import { Error } from '@/types/error';
 import {
   GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { supabase } from '@/lib/supabase';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
+import { makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
+const redirectTo = makeRedirectUri();
+console.log('redirectTo :', redirectTo);
 
 const FormSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -28,10 +35,55 @@ const FormSchema = z.object({
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
 });
 
 export default function Login() {
   const [loading, setLoading] = React.useState(false);
+
+  const createSessionFromUrl = async (url: string) => {
+    const { params, errorCode } = QueryParams.getQueryParams(url);
+
+    if (errorCode) throw new Error(errorCode);
+    const { access_token, refresh_token } = params;
+
+    if (!access_token) return;
+
+    const { data, error } = await supabase.auth.setSession({
+      access_token,
+      refresh_token,
+    });
+    if (error) throw error;
+
+    console.log(
+      'session create sess from url ----------------------------------------------------:',
+      data.session
+    );
+    return data.session;
+  };
+
+  const performOAuth = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) throw error;
+
+    const res = await WebBrowser.openAuthSessionAsync(
+      data?.url ?? '',
+      redirectTo
+    );
+
+    console.log('res :', res);
+    if (res.type === 'success') {
+      const { url } = res;
+      console.log('success  url  --------------------:', url);
+      await createSessionFromUrl(url);
+    }
+  };
 
   const router = useRouter();
   const alertRef = React.useRef<any>(null);
@@ -41,11 +93,14 @@ export default function Login() {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
+      console.log('userInfo :', userInfo);
       if (userInfo.idToken) {
+        console.log('fired :');
         const { data, error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
           token: userInfo.idToken,
         });
+        console.log('data :', data);
         console.log('error :', error);
       } else {
         throw new Error('no idToken');
@@ -64,6 +119,18 @@ export default function Login() {
       setLoading(false);
     }
   };
+  const sendMagicLink = async () => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: 'narekdevua@gmail.com',
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
+
+    if (error) throw error;
+    console.log('error :', error);
+    // Email sent.
+  };
 
   const {
     control,
@@ -75,22 +142,30 @@ export default function Login() {
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
-    // try {
-    //   await signInWithPassword(data.email, data.password);
-    // } catch (error: Error | any) {
-    //   alertRef.current?.showAlert({
-    //     variant: 'destructive',
-    //     title: 'Error',
-    //     message: error.message,
-    //   });
-    // }
+    //  const sendMagicLink = async () => {
+
+    console.log('fired :');
+    const { error } = await supabase.auth.signInWithOtp({
+      email: data.email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
+
+    if (error) throw error;
+    // Email sent.
+    Alert.alert('email sent');
   }
+
+  const url = Linking.useURL();
+  // console.log('url :', url);
+  if (url) createSessionFromUrl(url);
 
   return (
     <SafeAreaView
       style={tw`items-center flex-1 p-4 bg-background dark:bg-dark-background`}
     >
-      <Alert ref={alertRef} />
+      <CustomAlert ref={alertRef} />
       <Text
         style={tw`self-start mb-5 h1 text-foreground dark:text-dark-foreground`}
       >
@@ -122,7 +197,7 @@ export default function Login() {
       <View style={tw`w-full gap-y-4 absolute bottom-[50px]`}>
         <Button
           label='Увійти'
-          onPress={handleSubmit(onSubmit)}
+          onPress={sendMagicLink}
           isLoading={isSubmitting}
         />
         <View style={tw`py-1`}>
@@ -133,6 +208,61 @@ export default function Login() {
           onPress={signInWithGoogle}
           isLoading={isSubmitting}
         />
+
+        <Button
+          label='performOAuth'
+          onPress={performOAuth}
+          isLoading={isSubmitting}
+        />
+        {/* <Button
+          onPress={async () => {
+            const res = await supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: {
+                redirectTo:
+                  'https://beasnruicmydtdgqozev.supabase.co/auth/v1/callback',
+                queryParams: {
+                  prompt: 'consent',
+                },
+              },
+            });
+
+            const googleOAuthUrl = res.data.url;
+            console.log('googleOAuthUrl :', googleOAuthUrl);
+
+            if (!googleOAuthUrl) return Alert.alert('no oauth url found!');
+
+            const result = await WebBrowser.openAuthSessionAsync(
+              googleOAuthUrl,
+              'https://beasnruicmydtdgqozev.supabase.co/auth/v1/callback?',
+              {
+                showInRecents: true,
+              }
+            ).catch((err) => {
+              console.log(err);
+            });
+
+            if (result && result.type === 'success') {
+              const params = extractParamsFromUrl(result.url);
+
+              if (params.code) {
+                const user = await supabase.auth.exchangeCodeForSession(
+                  params.code
+                );
+                console.log(user);
+                return;
+              } else {
+                // sign in/up failed
+
+                console.log('failed :');
+              }
+            } else {
+              console.log('handle failed error');
+            }
+          }}
+          label='Sign in with google'
+        /> */}
+
         <Text
           style={tw`text-center muted`}
           onPress={() => {

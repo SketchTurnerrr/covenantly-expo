@@ -57,8 +57,10 @@ function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('error :', error);
       if (session) {
+        console.log('session :', session);
         router.replace('/(tabs)/');
       } else {
         console.log('no user');
@@ -69,6 +71,7 @@ function RootLayout() {
       if (session) {
         router.replace('/(tabs)/');
       } else {
+        console.log('session :', session);
         console.log('no user');
         router.replace('/(auth)/login');
       }
