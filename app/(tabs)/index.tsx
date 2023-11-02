@@ -10,7 +10,6 @@ export default function DiscoverScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <SkipProfileBtn />
       <Profile />
     </ScrollView>
   );

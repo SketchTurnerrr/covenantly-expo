@@ -4,11 +4,7 @@ import { StyleSheet } from 'react-native';
 const blurhash =
   '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
 
-interface ImageProps {
-  src: string;
-}
-
-export default function AvatarImage({ src }: ImageProps) {
+export default function AvatarImage({ src }: { src: string }) {
   return (
     <Image
       style={styles.image}

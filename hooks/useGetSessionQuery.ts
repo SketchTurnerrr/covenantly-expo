@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase';
+import { Session } from '@supabase/supabase-js';
 import { useQuery } from '@tanstack/react-query';
 
 export function useGetSession() {
@@ -6,7 +7,10 @@ export function useGetSession() {
     queryKey: ['session'],
     queryFn: async () => {
       const { data } = await supabase.auth.getSession();
-      return data;
+      if (!data.session) {
+        return {} as Session;
+      }
+      return data.session;
     },
   });
 }

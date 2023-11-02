@@ -27,10 +27,7 @@
       },
       "package": "com.covenantly"
     },
-    "web": {
-      "favicon": "./assets/favicon.png",
-      "bundler": "metro"
-    },
+
     "plugins": ["@react-native-google-signin/google-signin"]
   }
 }

@@ -1,11 +1,10 @@
 import { Button } from '@/components/ui/Button';
 import ExpoImage from '@/components/ui/AvatarImage';
 import { Separator } from '@/components/ui/Separator';
-import { useGetProfileInfoQuery } from '@/hooks/useGetProfileInfoQuery';
+import { useGetCurrentUserQuery } from '@/hooks/useGetCurrentUserQuery';
 import { useGetSession } from '@/hooks/useGetSessionQuery';
 import { supabase } from '@/supabase';
-import { Session } from '@supabase/supabase-js';
-import { Image } from 'expo-image';
+import { useEffect } from 'react';
 import {
   Edit,
   Settings2,
@@ -13,30 +12,48 @@ import {
   Sun,
   RefreshCcw,
 } from 'lucide-react-native';
-import ContentLoader, { Rect } from 'react-content-loader/native';
+import ContentLoader, { Circle, Rect } from 'react-content-loader/native';
 import { StyleSheet, View, Text, Alert } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import tw from 'twrnc';
+import { useStore } from '@/store/discoverProfileStore';
 
 export default function AccountScreen() {
   async function signOut() {
     await supabase.auth.signOut();
   }
   // console.log('user :', user);
-  const { data } = useGetSession();
+  // const { data } = useGetSession();
+  const { setCurrentUser } = useStore();
+  const { data: profile, isLoading, isSuccess } = useGetCurrentUserQuery();
+  console.log('isSuccess :', isSuccess);
 
-  const { data: profile, isLoading } = useGetProfileInfoQuery(
-    data?.session?.user.id
-  );
+  // console.log('useeffect :', profile);
+  useEffect(() => {
+    if (isSuccess) {
+      setCurrentUser(profile);
+    }
+  }, []);
 
-  // if (!profile) {
-  //   return null;
-  // }
+  if (!profile) {
+    return <View style={{ flex: 1 }} />;
+  }
 
   return (
     <View style={styles.container}>
-      <View style={{ width: 150, height: 150, marginBottom: 20 }}>
-        <ExpoImage src={profile?.photos[0].src} />
+      <View style={{ width: 150, height: 150, marginBottom: 10 }}>
+        {isLoading ? (
+          <ContentLoader
+            width={150}
+            height={150}
+            backgroundColor='#cfcfcf'
+            foregroundColor='#ecebeb'
+          >
+            <Circle cx='75' cy='75' r='75' />
+          </ContentLoader>
+        ) : (
+          <ExpoImage src={profile.photos?.[0].src} />
+        )}
       </View>
       {/* <Text style={styles.title}>Профіль</Text> */}
       {isLoading ? (
@@ -51,6 +68,7 @@ export default function AccountScreen() {
           <Rect x='0' y='0' rx='8' ry='8' width='120' height='20' />
         </ContentLoader>
       ) : (
+        // <View />
         <Text style={styles.title}>{profile?.first_name}</Text>
       )}
 
